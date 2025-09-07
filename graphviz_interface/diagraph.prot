@@ -1,0 +1,56 @@
+struct Node {
+	string name;
+	point width;
+	point height;
+}
+
+struct Edge {
+	string tail;
+	string head;
+}
+
+struct GraphAttribute {
+	int for_; // 0 for graph, 1 for node, 2 for edge
+	string key;
+	string value;
+}
+
+protocol C Graph {
+	string engine;
+	bool directed;
+	Edge edges[];
+	Node nodes[];
+	GraphAttribute attributes[];
+}
+
+struct LayoutNode {
+	string name;
+	point x;
+	point y;
+	point width;
+	point height;
+}
+
+struct ControlPoint {
+	point x;
+	point y;
+}
+
+struct LayoutEdge {
+	ControlPoint points[];
+	string head;
+	string tail;
+}
+
+protocol Typst Layout {
+	bool errored;
+	float scale;
+	point width;
+	point height;
+	LayoutNode nodes[];
+	LayoutEdge edges[];
+}
+
+protocol Typst Engines {
+	string engines[];
+}

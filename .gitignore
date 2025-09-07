@@ -1,0 +1,81 @@
+lib.pdf
+internals.pdf
+
+# Prerequisites
+*.d
+
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Kernel Module Compile Results
+*.mod*
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
+
+graphviz_interface/graphiz-src/*
+graphviz_interface/expat-src/*
+graphviz_interface/install/*
+graphviz_interface/*.gz
+graphviz_interface/build
+graphviz_interface/compile_commands.json
+
+diagraph/*
+autosubmit.sh
+
+.vscode
+.idea
+*.tar.xz
+
+graphviz_interface/src/test
+graphviz_interface/src/test.c
+graphviz_interface/CMakeLists.txt
+
+images/*.typ
+
+experiments
+adjacency.pdf
+graphviz_interface/test1.c
+graphviz_interface/test1
+graphviz_interface/dlopen.supp
