@@ -4,7 +4,6 @@
 #let layout-render(graph) = {
 	canvas({
 		import draw: *
-		
 		rect((0, 0), (graph.width, graph.height), stroke: red)
 		for n in graph.nodes {
 			let tx = n.x - n.width / 2

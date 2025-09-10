@@ -1,18 +1,20 @@
-#include "protocol/protocol.h"
-
 #ifdef TEST
 #define EMSCRIPTEN_KEEPALIVE
 #define DEBUG(...) printf(__VA_ARGS__)
 #define ERROR(str) printf("Error: %s\n", str)
+#define DEBUG_BLOCK(block) do { block } while (0)
 #else
 #define DEBUG(...)
+#define DEBUG_BLOCK(block)
 #define ERROR(str) write_error_message(str)
 #include "protocol/plugin.h"
 #endif
         
 #define GRAPHVIZ_ERROR wasm_minimal_protocol_send_result_to_host((uint8_t *)errBuff, strlen(errBuff))
+#define PT2IN(x) ((x) / 72.0)
+#define IN2PT(x) ((x) * 72.0)
 
-
+#include "protocol/protocol.h"
 #include <graphviz/gvc.h>
 #include <graphviz/gvplugin.h>
 #include <math.h>
@@ -86,6 +88,8 @@ int layout_graph(size_t buffer_len) {
     agattr_text(g, AGNODE, "arrowtail", "none");
     agattr_text(g, AGRAPH, "pad", "0");
     agattr_text(g, AGRAPH, "margin", "0");
+    agattr_text(g, AGNODE, "width", "0.1");
+    agattr_text(g, AGNODE, "height", "0.1");
 
     // Create nodes and edges
     for (int i = 0; i < input_graph.nodes_len; i++) {
@@ -98,12 +102,14 @@ int layout_graph(size_t buffer_len) {
         }
         char width_str[32];
         char height_str[32];
-        snprintf(width_str, sizeof(width_str), "%f", input_graph.nodes[i].width);
-        snprintf(height_str, sizeof(height_str), "%f", input_graph.nodes[i].height);
-        
+        snprintf(width_str, sizeof(width_str), "%.3f", PT2IN(input_graph.nodes[i].width));
+        snprintf(height_str, sizeof(height_str), "%.3f", PT2IN(input_graph.nodes[i].height));
+
+        DEBUG("Node %s: width=%s, height=%s\n", input_graph.nodes[i].name, width_str, height_str);
+
         agset_text(n, "fixedsize", "true");
         agset_text(n, "shape", "none");
-        agset_text(n, "width", "50");
+        agset_text(n, "width", width_str);
         agset_text(n, "height", height_str);
         agset_text(n, "margin", "0");
         agset_text(n, "label", "");
@@ -136,6 +142,14 @@ int layout_graph(size_t buffer_len) {
         return 1;
     }
 
+    DEBUG_BLOCK({
+        char *result;
+        size_t svg_chunk_size;
+        gvRenderData(gvc, g, "dot", &result, &svg_chunk_size);
+        DEBUG("Graphviz output:\n%s\n", result);
+        free(result);
+    });
+
     // Extract the layout information
     Layout layout = {0};
     layout.nodes_len = input_graph.nodes_len;
@@ -157,8 +171,8 @@ int layout_graph(size_t buffer_len) {
         assert(node_index < layout.nodes_len);
         layout.nodes[node_index].x = (float)ND_coord(n).x;
         layout.nodes[node_index].y = (float)ND_coord(n).y;
-        layout.nodes[node_index].width = ND_width(n) * 72.0f; // Convert from inches to points
-        layout.nodes[node_index].height = ND_height(n) * 72.0f;
+        layout.nodes[node_index].width = IN2PT(ND_width(n)); // Convert from inches to points
+        layout.nodes[node_index].height = IN2PT(ND_height(n));
         char *name =  agnameof(n);
         DEBUG("Node %s\n", name);
         layout.nodes[node_index].name = malloc(strlen(name) + 1);
