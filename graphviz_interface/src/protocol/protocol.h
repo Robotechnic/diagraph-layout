@@ -108,16 +108,26 @@ PROTOCOL_FUNCTION void wasm_minimal_protocol_write_args_to_buffer(uint8_t *ptr);
         __input_buffer[__buffer_offset + __str_len] = '\0';                                       \
         __buffer_offset += __str_len + 1;                                                          \
     }
+typedef struct Attribute_t {
+    char* key;
+    char* value;
+} Attribute;
+void free_Attribute(Attribute *s);
+
 typedef struct Node_t {
     char* name;
     float width;
     float height;
+    struct Attribute_t * attributes;
+    size_t attributes_len;
 } Node;
 void free_Node(Node *s);
 
 typedef struct Edge_t {
     char* tail;
     char* head;
+    struct Attribute_t * attributes;
+    size_t attributes_len;
 } Edge;
 void free_Edge(Edge *s);
 
@@ -151,26 +161,6 @@ typedef struct LayoutEdge_t {
 } LayoutEdge;
 void free_LayoutEdge(LayoutEdge *s);
 
-typedef struct Graph_t {
-    char* engine;
-    bool directed;
-    struct Edge_t * edges;
-    size_t edges_len;
-    struct Node_t * nodes;
-    size_t nodes_len;
-    struct GraphAttribute_t * attributes;
-    size_t attributes_len;
-} Graph;
-void free_Graph(Graph *s);
-int decode_Graph(size_t buffer_len, Graph *out);
-
-typedef struct Engines_t {
-    char* * engines;
-    size_t engines_len;
-} Engines;
-void free_Engines(Engines *s);
-int encode_Engines(const Engines *s);
-
 typedef struct Layout_t {
     bool errored;
     float scale;
@@ -183,5 +173,25 @@ typedef struct Layout_t {
 } Layout;
 void free_Layout(Layout *s);
 int encode_Layout(const Layout *s);
+
+typedef struct Engines_t {
+    char* * engines;
+    size_t engines_len;
+} Engines;
+void free_Engines(Engines *s);
+int encode_Engines(const Engines *s);
+
+typedef struct Graph_t {
+    char* engine;
+    bool directed;
+    struct Edge_t * edges;
+    size_t edges_len;
+    struct Node_t * nodes;
+    size_t nodes_len;
+    struct GraphAttribute_t * attributes;
+    size_t attributes_len;
+} Graph;
+void free_Graph(Graph *s);
+int decode_Graph(size_t buffer_len, Graph *out);
 
 #endif

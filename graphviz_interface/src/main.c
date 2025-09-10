@@ -107,6 +107,10 @@ int layout_graph(size_t buffer_len) {
 
         DEBUG("Node %s: width=%s, height=%s\n", input_graph.nodes[i].name, width_str, height_str);
 
+        for (int j = 0; j < input_graph.nodes[i].attributes_len; j++) {
+            agset_text(n, input_graph.nodes[i].attributes[j].key, input_graph.nodes[i].attributes[j].value);
+        }
+
         agset_text(n, "fixedsize", "true");
         agset_text(n, "shape", "none");
         agset_text(n, "width", width_str);
@@ -130,6 +134,9 @@ int layout_graph(size_t buffer_len) {
             free_Graph(&input_graph);
             agclose(g);
             return 1;
+        }
+        for (int j = 0; j < input_graph.edges[i].attributes_len; j++) {
+            agset_text(e, input_graph.edges[i].attributes[j].key, input_graph.edges[i].attributes[j].value);
         }
     }
 

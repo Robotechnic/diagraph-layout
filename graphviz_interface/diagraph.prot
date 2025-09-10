@@ -1,12 +1,19 @@
+struct Attribute {
+	string key;
+	string value;
+}
+
 struct Node {
 	string name;
 	point width;
 	point height;
+	Attribute attributes[];
 }
 
 struct Edge {
 	string tail;
 	string head;
+	Attribute attributes[];
 }
 
 struct GraphAttribute {

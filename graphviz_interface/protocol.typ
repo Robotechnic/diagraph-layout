@@ -37,9 +37,9 @@
 	if length == 0 {
 		("", 1)
 	} else { 
-		// (str(bytes.slice(0, length - 1)), length)
+		(str(bytes.slice(0, length - 1)), length)
 	}
-	(array(bytes.slice(0, length - 1)), length)
+	//(array(bytes.slice(0, length - 1)), length)
 }
 
 /// Encodes a boolean into bytes
@@ -181,11 +181,14 @@
 	}
 	(result, offset)
 }
+#let encode-Attribute(value) = {
+  encode-string(value.at("key")) + encode-string(value.at("value"))
+}
 #let encode-Node(value) = {
-  encode-string(value.at("name")) + encode-point(value.at("width")) + encode-point(value.at("height"))
+  encode-string(value.at("name")) + encode-point(value.at("width")) + encode-point(value.at("height")) + encode-list(value.at("attributes"), encode-Attribute)
 }
 #let encode-Edge(value) = {
-  encode-string(value.at("tail")) + encode-string(value.at("head"))
+  encode-string(value.at("tail")) + encode-string(value.at("head")) + encode-list(value.at("attributes"), encode-Attribute)
 }
 #let encode-GraphAttribute(value) = {
   encode-int(value.at("for_")) + encode-string(value.at("key")) + encode-string(value.at("value"))
@@ -235,17 +238,6 @@
     tail: f_tail,
   ), offset)
 }
-#let encode-Graph(value) = {
-  encode-string(value.at("engine")) + encode-bool(value.at("directed")) + encode-list(value.at("edges"), encode-Edge) + encode-list(value.at("nodes"), encode-Node) + encode-list(value.at("attributes"), encode-GraphAttribute)
-}
-#let decode-Engines(bytes) = {
-  let offset = 0
-  let (f_engines, size) = decode-list(bytes.slice(offset, bytes.len()), decode-string)
-  offset += size
-  ((
-    engines: f_engines,
-  ), offset)
-}
 #let decode-Layout(bytes) = {
   let offset = 0
   let (f_errored, size) = decode-bool(bytes.slice(offset, bytes.len()))
@@ -268,4 +260,15 @@
     nodes: f_nodes,
     edges: f_edges,
   ), offset)
+}
+#let decode-Engines(bytes) = {
+  let offset = 0
+  let (f_engines, size) = decode-list(bytes.slice(offset, bytes.len()), decode-string)
+  offset += size
+  ((
+    engines: f_engines,
+  ), offset)
+}
+#let encode-Graph(value) = {
+  encode-string(value.at("engine")) + encode-bool(value.at("directed")) + encode-list(value.at("edges"), encode-Edge) + encode-list(value.at("nodes"), encode-Node) + encode-list(value.at("attributes"), encode-GraphAttribute)
 }

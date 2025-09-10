@@ -7,20 +7,28 @@
   ]
 }
 
-#let node(name, width, height) = {
+#let node(name, width, height, ..args) = {
+  if args.pos().len() > 0 {
+    panic("Too many arguments for node: " + name)
+  }
   (
     type: "node",
     name: name,
     width: width,
     height: height,
+    attributes: args.named()
   )
 }
 
-#let edge(head, tail) = {
+#let edge(head, tail, ..args) = {
+  if args.pos().len() > 0 {
+    panic("Too many arguments for edge: " + head + " -> " + tail)
+  }
   (
     type: "edge",
     head: head,
     tail: tail,
+    attributes: args.named()
   )
 }
 
@@ -51,6 +59,7 @@
         name: item.name,
         width: item.width,
         height: item.height,
+        attributes: item.attributes.pairs(),
       ))
 			if item.name in nodes-id {
 				panic("Duplicate node name: " + item.name)
@@ -68,6 +77,7 @@
       edges.push((
         tail: item.tail,
         head: item.head,
+        attributes: item.attributes.pairs(),
       ))
     } else if item.type == "graph-attribute" {
       graph-attributes.push((
