@@ -19,6 +19,7 @@ struct Edge {
 	string tail;
 	string head;
 	Attribute attributes[];
+	Size? label;
 	Size? xlabel;
 	Size? headlabel;
 	Size? taillabel;
@@ -38,12 +39,21 @@ protocol C Graph {
 	GraphAttribute attributes[];
 }
 
+struct LayoutLabel {
+	point x;
+	point y;
+	point width;
+	point height;
+}
+
+
 struct LayoutNode {
 	string name;
 	point x;
 	point y;
 	point width;
 	point height;
+	LayoutLabel? xlabel;
 }
 
 struct ControlPoint {
@@ -55,6 +65,10 @@ struct LayoutEdge {
 	ControlPoint points[];
 	string head;
 	string tail;
+	LayoutLabel? label;
+	LayoutLabel? xlabel;
+	LayoutLabel? headlabel;
+	LayoutLabel? taillabel;
 }
 
 protocol Typst Layout {
