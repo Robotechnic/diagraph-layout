@@ -3,17 +3,25 @@ struct Attribute {
 	string value;
 }
 
+struct Size {
+	point width;
+	point height;
+}
+
 struct Node {
 	string name;
 	point width;
 	point height;
-	Attribute attributes[];
+	Size? xlabel;
 }
 
 struct Edge {
 	string tail;
 	string head;
 	Attribute attributes[];
+	Size? xlabel;
+	Size? headlabel;
+	Size? taillabel;
 }
 
 struct GraphAttribute {

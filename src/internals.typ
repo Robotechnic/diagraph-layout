@@ -7,27 +7,64 @@
   ]
 }
 
-#let node(name, width, height, ..args) = {
-  if args.pos().len() > 0 {
-    panic("Too many arguments for node: " + name)
+#let node(name, width: 0.75 * 75pt, height: 0.5 * 75pt, xlabel: none) = {
+  if width < 0.01 * 75pt {
+    panic("Node width too small, must be at least 0.01 inch (" + str(0.01 * 75) + "pt): " + name)
+  }
+  if height < 0.01 * 75pt {
+    panic("Node height too small, must be at least 0.01 inch (" + str(0.01 * 75) + "pt): " + name)
+  }
+  if xlabel != none and type(xlabel) != dictionary {
+    panic("Node xlabel must be none or a dictionary: " + name)
+  }
+  if xlabel != none and (not "width" in xlabel or not "height" in xlabel) {
+    panic("Node xlabel dictionary must contain width and height keys: " + name)
   }
   (
     type: "node",
     name: name,
     width: width,
     height: height,
-    attributes: args.named()
+    xlabel: xlabel,
   )
 }
 
-#let edge(head, tail, ..args) = {
+#let edge(head, tail, label: none, xlabel: none, taillabel: none, headlabel: none, ..args) = {
   if args.pos().len() > 0 {
     panic("Too many arguments for edge: " + head + " -> " + tail)
+  }
+  if xlabel != none and type(xlabel) != dictionary {
+    panic("Edge xlabel must be none or a dictionary: " + head + " -> " + tail)
+  }
+  if xlabel != none and (not "width" in xlabel or not "height" in xlabel) {
+    panic("Edge xlabel dictionary must contain width and height keys: " + head + " -> " + tail)
+  }
+  if label != none and type(label) != dictionary {
+    panic("Edge label must be none or a dictionary: " + head + " -> " + tail)
+  }
+  if label != none and (not "width" in label or not "height" in label) {
+    panic("Edge label dictionary must contain width and height keys: " + head + " -> " + tail)
+  }
+  if taillabel != none and type(taillabel) != dictionary {
+    panic("Edge taillabel must be none or a dictionary: " + head + " -> " + tail)
+  }
+  if taillabel != none and (not "width" in taillabel or not "height" in taillabel) {
+    panic("Edge taillabel dictionary must contain width and height keys: " + head + " -> " + tail)
+  }
+  if headlabel != none and type(headlabel) != dictionary {
+    panic("Edge headlabel must be none or a dictionary: " + head + " -> " + tail)
+  }
+  if headlabel != none and (not "width" in headlabel or not "height" in headlabel) {
+    panic("Edge headlabel dictionary must contain width and height keys: " + head + " -> " + tail)
   }
   (
     type: "edge",
     head: head,
     tail: tail,
+    label: label,
+    xlabel: xlabel,
+    taillabel: taillabel,
+    headlabel: headlabel,
     attributes: args.named()
   )
 }
@@ -59,7 +96,7 @@
         name: item.name,
         width: item.width,
         height: item.height,
-        attributes: item.attributes.pairs(),
+        xlabel: item.xlabel,
       ))
 			if item.name in nodes-id {
 				panic("Duplicate node name: " + item.name)

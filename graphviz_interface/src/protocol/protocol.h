@@ -15,6 +15,7 @@
 PROTOCOL_FUNCTION void wasm_minimal_protocol_send_result_to_host(const uint8_t *ptr, size_t len);
 PROTOCOL_FUNCTION void wasm_minimal_protocol_write_args_to_buffer(uint8_t *ptr);
 
+typedef size_t (*size_function)(const void*);
 
 #define TYPST_INT_SIZE 4
 
@@ -114,12 +115,17 @@ typedef struct Attribute_t {
 } Attribute;
 void free_Attribute(Attribute *s);
 
+typedef struct Size_t {
+    float width;
+    float height;
+} Size;
+void free_Size(Size *s);
+
 typedef struct Node_t {
     char* name;
     float width;
     float height;
-    struct Attribute_t * attributes;
-    size_t attributes_len;
+    struct Size_t * xlabel;
 } Node;
 void free_Node(Node *s);
 
@@ -128,6 +134,9 @@ typedef struct Edge_t {
     char* head;
     struct Attribute_t * attributes;
     size_t attributes_len;
+    struct Size_t * xlabel;
+    struct Size_t * headlabel;
+    struct Size_t * taillabel;
 } Edge;
 void free_Edge(Edge *s);
 
@@ -161,6 +170,19 @@ typedef struct LayoutEdge_t {
 } LayoutEdge;
 void free_LayoutEdge(LayoutEdge *s);
 
+typedef struct Graph_t {
+    char* engine;
+    bool directed;
+    struct Edge_t * edges;
+    size_t edges_len;
+    struct Node_t * nodes;
+    size_t nodes_len;
+    struct GraphAttribute_t * attributes;
+    size_t attributes_len;
+} Graph;
+void free_Graph(Graph *s);
+int decode_Graph(size_t buffer_len, Graph *out);
+
 typedef struct Layout_t {
     bool errored;
     float scale;
@@ -180,18 +202,5 @@ typedef struct Engines_t {
 } Engines;
 void free_Engines(Engines *s);
 int encode_Engines(const Engines *s);
-
-typedef struct Graph_t {
-    char* engine;
-    bool directed;
-    struct Edge_t * edges;
-    size_t edges_len;
-    struct Node_t * nodes;
-    size_t nodes_len;
-    struct GraphAttribute_t * attributes;
-    size_t attributes_len;
-} Graph;
-void free_Graph(Graph *s);
-int decode_Graph(size_t buffer_len, Graph *out);
 
 #endif

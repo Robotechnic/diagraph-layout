@@ -39,12 +39,16 @@ void encode_float(float value, uint8_t *buffer) {
 	}
 }
 
-size_t list_size(void *list, size_t size, size_t (*sf)(const void*), size_t element_size) {
+size_t list_size(void *list, size_t size, size_function sf, size_t element_size) {
     size_t result = 0;
     for (int i = 0; i < size; i++) {
         result += sf(list + i * element_size);
     }
     return result;
+}
+
+size_t optional_size(void *opt, size_function sf) {
+    return 1 + (opt ? sf(opt) : 0);
 }
 
 size_t int_size(const void* elem) {
@@ -90,14 +94,25 @@ int decode_Attribute(uint8_t *__input_buffer, size_t buffer_len, Attribute *out,
     *buffer_offset += __buffer_offset;
     return 0;
 }
+void free_Size(Size *s) {
+}
+int decode_Size(uint8_t *__input_buffer, size_t buffer_len, Size *out, size_t *buffer_offset) {
+    size_t __buffer_offset = 0;
+    int err;
+    (void)err;
+    NEXT_FLOAT(out->width)
+    NEXT_FLOAT(out->height)
+    *buffer_offset += __buffer_offset;
+    return 0;
+}
 void free_Node(Node *s) {
     if (s->name) {
         free(s->name);
     }
-    for (size_t i = 0; i < s->attributes_len; i++) {
-    free_Attribute(&s->attributes[i]);
+    if (s->xlabel) {
+    free_Size(&s->xlabel[0]);
+        free(s->xlabel);
     }
-    free(s->attributes);
 }
 int decode_Node(uint8_t *__input_buffer, size_t buffer_len, Node *out, size_t *buffer_offset) {
     size_t __buffer_offset = 0;
@@ -106,17 +121,13 @@ int decode_Node(uint8_t *__input_buffer, size_t buffer_len, Node *out, size_t *b
     NEXT_STR(out->name)
     NEXT_FLOAT(out->width)
     NEXT_FLOAT(out->height)
-    NEXT_INT(out->attributes_len)
-    if (out->attributes_len == 0) {
-        out->attributes = NULL;
+    bool has_xlabel;
+    NEXT_CHAR(has_xlabel)
+    if (has_xlabel) {
+        out->xlabel = malloc(sizeof(Size));
+    if ((err = decode_Size(__input_buffer + __buffer_offset, buffer_len - __buffer_offset, &out->xlabel[0], &__buffer_offset))){return err;}
     } else {
-        out->attributes = malloc(out->attributes_len * sizeof(Attribute));
-        if (!out->attributes){
-            return 1;
-        }
-        for (size_t i = 0; i < out->attributes_len; i++) {
-    if ((err = decode_Attribute(__input_buffer + __buffer_offset, buffer_len - __buffer_offset, &out->attributes[i], &__buffer_offset))){return err;}
-        }
+        out->xlabel = NULL;
     }
     *buffer_offset += __buffer_offset;
     return 0;
@@ -132,6 +143,18 @@ void free_Edge(Edge *s) {
     free_Attribute(&s->attributes[i]);
     }
     free(s->attributes);
+    if (s->xlabel) {
+    free_Size(&s->xlabel[0]);
+        free(s->xlabel);
+    }
+    if (s->headlabel) {
+    free_Size(&s->headlabel[0]);
+        free(s->headlabel);
+    }
+    if (s->taillabel) {
+    free_Size(&s->taillabel[0]);
+        free(s->taillabel);
+    }
 }
 int decode_Edge(uint8_t *__input_buffer, size_t buffer_len, Edge *out, size_t *buffer_offset) {
     size_t __buffer_offset = 0;
@@ -150,6 +173,30 @@ int decode_Edge(uint8_t *__input_buffer, size_t buffer_len, Edge *out, size_t *b
         for (size_t i = 0; i < out->attributes_len; i++) {
     if ((err = decode_Attribute(__input_buffer + __buffer_offset, buffer_len - __buffer_offset, &out->attributes[i], &__buffer_offset))){return err;}
         }
+    }
+    bool has_xlabel;
+    NEXT_CHAR(has_xlabel)
+    if (has_xlabel) {
+        out->xlabel = malloc(sizeof(Size));
+    if ((err = decode_Size(__input_buffer + __buffer_offset, buffer_len - __buffer_offset, &out->xlabel[0], &__buffer_offset))){return err;}
+    } else {
+        out->xlabel = NULL;
+    }
+    bool has_headlabel;
+    NEXT_CHAR(has_headlabel)
+    if (has_headlabel) {
+        out->headlabel = malloc(sizeof(Size));
+    if ((err = decode_Size(__input_buffer + __buffer_offset, buffer_len - __buffer_offset, &out->headlabel[0], &__buffer_offset))){return err;}
+    } else {
+        out->headlabel = NULL;
+    }
+    bool has_taillabel;
+    NEXT_CHAR(has_taillabel)
+    if (has_taillabel) {
+        out->taillabel = malloc(sizeof(Size));
+    if ((err = decode_Size(__input_buffer + __buffer_offset, buffer_len - __buffer_offset, &out->taillabel[0], &__buffer_offset))){return err;}
+    } else {
+        out->taillabel = NULL;
     }
     *buffer_offset += __buffer_offset;
     return 0;
@@ -248,68 +295,6 @@ int encode_LayoutEdge(const LayoutEdge *s, uint8_t *__input_buffer, size_t *buff
     *buffer_offset += __buffer_offset;
     return 0;
 }
-void free_Layout(Layout *s) {
-    for (size_t i = 0; i < s->nodes_len; i++) {
-    free_LayoutNode(&s->nodes[i]);
-    }
-    free(s->nodes);
-    for (size_t i = 0; i < s->edges_len; i++) {
-    free_LayoutEdge(&s->edges[i]);
-    }
-    free(s->edges);
-}
-size_t Layout_size(const void *s){
-	return 1 + TYPST_INT_SIZE + TYPST_INT_SIZE + TYPST_INT_SIZE + TYPST_INT_SIZE + list_size(((Layout*)s)->nodes, ((Layout*)s)->nodes_len, LayoutNode_size, sizeof(*((Layout*)s)->nodes)) + TYPST_INT_SIZE + list_size(((Layout*)s)->edges, ((Layout*)s)->edges_len, LayoutEdge_size, sizeof(*((Layout*)s)->edges));
-}
-int encode_Layout(const Layout *s) {
-    size_t buffer_len = Layout_size(s);
-    INIT_BUFFER_PACK(buffer_len)
-    int err;
-	(void)err;
-    CHAR_PACK(s->errored)
-    FLOAT_PACK(s->scale)
-    FLOAT_PACK(s->width)
-    FLOAT_PACK(s->height)
-    INT_PACK(s->nodes_len)
-    for (size_t i = 0; i < s->nodes_len; i++) {
-        if ((err = encode_LayoutNode(&s->nodes[i], __input_buffer + __buffer_offset, &buffer_len, &__buffer_offset))) {
-            return err;
-        }
-    }
-    INT_PACK(s->edges_len)
-    for (size_t i = 0; i < s->edges_len; i++) {
-        if ((err = encode_LayoutEdge(&s->edges[i], __input_buffer + __buffer_offset, &buffer_len, &__buffer_offset))) {
-            return err;
-        }
-    }
-
-    wasm_minimal_protocol_send_result_to_host(__input_buffer, buffer_len);
-    return 0;
-}
-void free_Engines(Engines *s) {
-    for (size_t i = 0; i < s->engines_len; i++) {
-    if (s->engines[i]) {
-        free(s->engines[i]);
-    }
-    }
-    free(s->engines);
-}
-size_t Engines_size(const void *s){
-	return TYPST_INT_SIZE + string_list_size(((Engines*)s)->engines, ((Engines*)s)->engines_len);
-}
-int encode_Engines(const Engines *s) {
-    size_t buffer_len = Engines_size(s);
-    INIT_BUFFER_PACK(buffer_len)
-    int err;
-	(void)err;
-    INT_PACK(s->engines_len)
-    for (size_t i = 0; i < s->engines_len; i++) {
-    STR_PACK(s->engines[i])
-    }
-
-    wasm_minimal_protocol_send_result_to_host(__input_buffer, buffer_len);
-    return 0;
-}
 void free_Graph(Graph *s) {
     if (s->engine) {
         free(s->engine);
@@ -370,5 +355,67 @@ int decode_Graph(size_t buffer_len, Graph *out) {
         }
     }
     FREE_BUFFER()
+    return 0;
+}
+void free_Layout(Layout *s) {
+    for (size_t i = 0; i < s->nodes_len; i++) {
+    free_LayoutNode(&s->nodes[i]);
+    }
+    free(s->nodes);
+    for (size_t i = 0; i < s->edges_len; i++) {
+    free_LayoutEdge(&s->edges[i]);
+    }
+    free(s->edges);
+}
+size_t Layout_size(const void *s){
+	return 1 + TYPST_INT_SIZE + TYPST_INT_SIZE + TYPST_INT_SIZE + TYPST_INT_SIZE + list_size(((Layout*)s)->nodes, ((Layout*)s)->nodes_len, LayoutNode_size, sizeof(*((Layout*)s)->nodes)) + TYPST_INT_SIZE + list_size(((Layout*)s)->edges, ((Layout*)s)->edges_len, LayoutEdge_size, sizeof(*((Layout*)s)->edges));
+}
+int encode_Layout(const Layout *s) {
+    size_t buffer_len = Layout_size(s);
+    INIT_BUFFER_PACK(buffer_len)
+    int err;
+	(void)err;
+    CHAR_PACK(s->errored)
+    FLOAT_PACK(s->scale)
+    FLOAT_PACK(s->width)
+    FLOAT_PACK(s->height)
+    INT_PACK(s->nodes_len)
+    for (size_t i = 0; i < s->nodes_len; i++) {
+        if ((err = encode_LayoutNode(&s->nodes[i], __input_buffer + __buffer_offset, &buffer_len, &__buffer_offset))) {
+            return err;
+        }
+    }
+    INT_PACK(s->edges_len)
+    for (size_t i = 0; i < s->edges_len; i++) {
+        if ((err = encode_LayoutEdge(&s->edges[i], __input_buffer + __buffer_offset, &buffer_len, &__buffer_offset))) {
+            return err;
+        }
+    }
+
+    wasm_minimal_protocol_send_result_to_host(__input_buffer, buffer_len);
+    return 0;
+}
+void free_Engines(Engines *s) {
+    for (size_t i = 0; i < s->engines_len; i++) {
+    if (s->engines[i]) {
+        free(s->engines[i]);
+    }
+    }
+    free(s->engines);
+}
+size_t Engines_size(const void *s){
+	return TYPST_INT_SIZE + string_list_size(((Engines*)s)->engines, ((Engines*)s)->engines_len);
+}
+int encode_Engines(const Engines *s) {
+    size_t buffer_len = Engines_size(s);
+    INIT_BUFFER_PACK(buffer_len)
+    int err;
+	(void)err;
+    INT_PACK(s->engines_len)
+    for (size_t i = 0; i < s->engines_len; i++) {
+    STR_PACK(s->engines[i])
+    }
+
+    wasm_minimal_protocol_send_result_to_host(__input_buffer, buffer_len);
     return 0;
 }
