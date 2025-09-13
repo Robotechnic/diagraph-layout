@@ -137,10 +137,18 @@ int layout_graph(size_t buffer_len) {
     agattr_text(g, AGNODE, "shape", "none");
     agattr_text(g, AGNODE, "fixedsize", "true");
 
-    agattr_text(g, AGEDGE, "label", "");
-    agattr_text(g, AGEDGE, "xlabel", "");
+    agattr_text(g, AGEDGE, "constraint", "true");
+    agattr_text(g, AGEDGE, "headclip", "true");
     agattr_text(g, AGEDGE, "headlabel", "");
+    agattr_text(g, AGEDGE, "label", "");
+    agattr_text(g, AGEDGE, "labelangle", "-25.0");
+    agattr_text(g, AGEDGE, "labeldistance", "1.0");
+    agattr_text(g, AGEDGE, "labelfloat", "false");
+    agattr_text(g, AGEDGE, "len", strcmp(input_graph.engine, "neato") == 0 ? "1.0" : "0.3");
     agattr_text(g, AGEDGE, "taillabel", "");
+    agattr_text(g, AGEDGE, "tailclip", "true");
+    agattr_text(g, AGEDGE, "xlabel", "");
+    agattr_text(g, AGEDGE, "weight", "1");
 
     // Create nodes and edges
     for (int i = 0; i < input_graph.nodes_len; i++) {

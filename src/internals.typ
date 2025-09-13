@@ -118,7 +118,7 @@
         xlabel: item.xlabel,
         taillabel: item.taillabel,
         headlabel: item.headlabel,
-        attributes: item.attributes.pairs(),
+        attributes: item.attributes.pairs().map(a => (key: a.at(0), value: a.at(1)))
       ))
     } else if item.type == "graph-attribute" {
       graph-attributes.push((
