@@ -216,6 +216,9 @@
 #let encode-GraphAttribute(value) = {
   encode-int(value.at("for_")) + encode-string(value.at("key")) + encode-string(value.at("value"))
 }
+#let encode-SubGraph(value) = {
+  encode-list(value.at("nodes"), encode-string) + encode-list(value.at("attributes"), encode-Attribute)
+}
 #let decode-LayoutLabel(bytes) = {
   let offset = 0
   let (f_x, size) = decode-point(bytes.slice(offset, bytes.len()))
@@ -293,14 +296,6 @@
     taillabel: f_taillabel,
   ), offset)
 }
-#let decode-Engines(bytes) = {
-  let offset = 0
-  let (f_engines, size) = decode-list(bytes.slice(offset, bytes.len()), decode-string)
-  offset += size
-  ((
-    engines: f_engines,
-  ), offset)
-}
 #let decode-Layout(bytes) = {
   let offset = 0
   let (f_errored, size) = decode-bool(bytes.slice(offset, bytes.len()))
@@ -325,5 +320,13 @@
   ), offset)
 }
 #let encode-Graph(value) = {
-  encode-string(value.at("engine")) + encode-bool(value.at("directed")) + encode-list(value.at("edges"), encode-Edge) + encode-list(value.at("nodes"), encode-Node) + encode-list(value.at("attributes"), encode-GraphAttribute)
+  encode-string(value.at("engine")) + encode-bool(value.at("directed")) + encode-list(value.at("edges"), encode-Edge) + encode-list(value.at("nodes"), encode-Node) + encode-list(value.at("attributes"), encode-GraphAttribute) + encode-list(value.at("subgraphs"), encode-SubGraph)
+}
+#let decode-Engines(bytes) = {
+  let offset = 0
+  let (f_engines, size) = decode-list(bytes.slice(offset, bytes.len()), decode-string)
+  offset += size
+  ((
+    engines: f_engines,
+  ), offset)
 }

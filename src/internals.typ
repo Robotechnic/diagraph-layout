@@ -65,7 +65,7 @@
     xlabel: xlabel,
     taillabel: taillabel,
     headlabel: headlabel,
-    attributes: args.named()
+    attributes: args.named().pairs().map(a => (key: a.at(0), value: a.at(1)))
   )
 }
 
@@ -81,18 +81,42 @@
   )
 }
 
+#let subgraph(..args) = {
+  let result = (
+    type: "subgraph",
+    nodes: (),
+    attributes: ()
+  )
+  for arg in args.pos() {
+    if type(arg) == str {
+      result.nodes.push(arg)
+    } else {
+      panic("Invalid argument type for subgraph: " + repr(arg))
+    }
+  }
+  for (key, value) in args.named().pairs() {
+    result.attributes.push((key: key, value: value))
+  }
+  result
+}
+
 #let layout-graph(engine: "dot", directed: false, ..graph) = {
   let pos = graph.pos()
   for n in graph.named().pairs() {
     pos.push(graph-attribute("GRAPH", n.at(0), n.at(1)))
   }
-  let nodes = ()
-  let edges = ()
-  let graph-attributes = ()
   let nodes-id = (:)
+  let input = (
+    engine: engine,
+    directed: directed,
+    nodes: (),
+    edges: (),
+    attributes: (),
+    subgraphs: (),
+  )
   for item in pos {
     if item.type == "node" {
-      nodes.push((
+      input.nodes.push((
         name: item.name,
         width: item.width,
         height: item.height,
@@ -101,7 +125,7 @@
 			if item.name in nodes-id {
 				panic("Duplicate node name: " + item.name)
 			}
-      nodes-id.insert(item.name, nodes.len() - 1)
+      nodes-id.insert(item.name, input.nodes.len() - 1)
     } else if item.type == "edge" {
       let head-id = nodes-id.at(item.head, default: none)
       let tail-id = nodes-id.at(item.tail, default: none)
@@ -111,32 +135,30 @@
       if tail-id == none {
         panic("Edge references unknown node: " + item.tail)
       }
-      edges.push((
+      input.edges.push((
         tail: item.tail,
         head: item.head,
         label: item.label,
         xlabel: item.xlabel,
         taillabel: item.taillabel,
         headlabel: item.headlabel,
-        attributes: item.attributes.pairs().map(a => (key: a.at(0), value: a.at(1)))
+        attributes: item.attributes
       ))
     } else if item.type == "graph-attribute" {
-      graph-attributes.push((
+      input.attributes.push((
         for_: item.attr-type,
         key: item.key,
         value: item.value,
+      ))
+    } else if item.type == "subgraph" {
+      input.subgraphs.push((
+        nodes: item.nodes,
+        attributes: item.attributes
       ))
     } else {
       panic("Unknown graph item type: " + item.type)
     }
   }
-	let input = (
-		engine: engine,
-		directed: directed,
-		nodes: nodes,
-		edges: edges,
-		attributes: graph-attributes,
-	)
   // return input
 	let input = encode-Graph(input)
   // return repr-bytes(input)

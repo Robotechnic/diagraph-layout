@@ -31,12 +31,18 @@ struct GraphAttribute {
 	string value;
 }
 
+struct SubGraph {
+	string nodes[];
+	Attribute attributes[];
+}
+
 protocol C Graph {
 	string engine;
 	bool directed;
 	Edge edges[];
 	Node nodes[];
 	GraphAttribute attributes[];
+	SubGraph subgraphs[];
 }
 
 struct LayoutLabel {

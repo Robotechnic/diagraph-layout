@@ -124,25 +124,27 @@ int layout_graph(size_t buffer_len) {
     }
 
     // initialize attribute table with defaults
-    agattr_text(g, AGEDGE, "dir", "none");
-    agattr_text(g, AGNODE, "arrowhead", "none");
-    agattr_text(g, AGNODE, "arrowtail", "none");
     agattr_text(g, AGRAPH, "pad", "0");
     agattr_text(g, AGRAPH, "margin", "0");
-
+    agattr_text(g, AGRAPH, "rankdir", "TB");
+    agattr_text(g, AGRAPH, "rank", "");
+    
+    agattr_text(g, AGNODE, "arrowhead", "none");
+    agattr_text(g, AGNODE, "arrowtail", "none");
     agattr_text(g, AGNODE, "width", "0.1");
     agattr_text(g, AGNODE, "height", "0.1");
     agattr_text(g, AGNODE, "margin", "0");
     agattr_text(g, AGNODE, "xlabel", "");
     agattr_text(g, AGNODE, "shape", "none");
     agattr_text(g, AGNODE, "fixedsize", "true");
-
+    
     agattr_text(g, AGEDGE, "constraint", "true");
+    agattr_text(g, AGEDGE, "dir", "none");
     agattr_text(g, AGEDGE, "headclip", "true");
     agattr_text(g, AGEDGE, "headlabel", "");
     agattr_text(g, AGEDGE, "label", "");
-    agattr_text(g, AGEDGE, "labelangle", "-25.0");
-    agattr_text(g, AGEDGE, "labeldistance", "1.0");
+    agattr_text(g, AGEDGE, "labelangle", "");
+    agattr_text(g, AGEDGE, "labeldistance", "");
     agattr_text(g, AGEDGE, "labelfloat", "false");
     agattr_text(g, AGEDGE, "len", strcmp(input_graph.engine, "neato") == 0 ? "1.0" : "0.3");
     agattr_text(g, AGEDGE, "taillabel", "");
@@ -196,6 +198,37 @@ int layout_graph(size_t buffer_len) {
 
         for (int j = 0; j < input_graph.edges[i].attributes_len; j++) {
             agset_text(e, input_graph.edges[i].attributes[j].key, input_graph.edges[i].attributes[j].value);
+        }
+    }
+
+    for (int i = 0; i < input_graph.subgraphs_len; i++) {
+        char name[32];
+        snprintf(name, sizeof(name), "subgraph_%d", i);
+        Agraph_t *sg = agsubg(g, name, true);
+        if (!sg) {
+            ERROR("Failed to create subgraph");
+            free_Graph(&input_graph);
+            agclose(g);
+            return 1;
+        }
+        for (int j = 0; j < input_graph.subgraphs[i].nodes_len; j++) {
+            Agnode_t *n = agnode(g, input_graph.subgraphs[i].nodes[j], false);
+            if (!n) {
+                ERROR("Failed to find node in subgraph");
+                free_Graph(&input_graph);
+                agclose(g);
+                return 1;
+            }
+            if (agsubnode(sg, n, true) == NULL) {
+                ERROR("Failed to add node to subgraph");
+                free_Graph(&input_graph);
+                agclose(g);
+                return 1;
+            }
+        }
+        for (int j = 0; j < input_graph.subgraphs[i].attributes_len; j++) {
+            agset_text(sg, input_graph.subgraphs[i].attributes[j].key,
+                       input_graph.subgraphs[i].attributes[j].value);
         }
     }
 
