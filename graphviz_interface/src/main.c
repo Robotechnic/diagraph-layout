@@ -2,14 +2,17 @@
 #define EMSCRIPTEN_KEEPALIVE
 #define DEBUG(...) printf(__VA_ARGS__)
 #define ERROR(str) printf("Error: %s\n", str)
-#define DEBUG_BLOCK(block) do { block } while (0)
+#define DEBUG_BLOCK(block)                                                                                   \
+    do {                                                                                                     \
+        block                                                                                                \
+    } while (0)
 #else
 #define DEBUG(...)
 #define DEBUG_BLOCK(block)
 #define ERROR(str) write_error_message(str)
 #include "protocol/plugin.h"
 #endif
-        
+
 #define GRAPHVIZ_ERROR wasm_minimal_protocol_send_result_to_host((uint8_t *)errBuff, strlen(errBuff))
 
 #include "protocol/protocol.h"
@@ -20,6 +23,18 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define ELEMENT_LABEL_INFOS(elem, out_label, attr_name, macro)                                               \
+    if (aghtmlstr(agget(elem, attr_name))) {                                                                 \
+        (out_label) = malloc(sizeof(LayoutLabel));                                                           \
+        if (!(out_label)) {                                                                                  \
+            ERROR("Failed to allocate memory for element label");                                            \
+            return 1;                                                                                        \
+        }                                                                                                    \
+        (out_label)->x = (float)(macro(elem)->pos.x);                                                        \
+        (out_label)->y = (float)(macro(elem)->pos.y);                                                        \
+        (out_label)->width = (float)(macro(elem)->dimen.x);                                            \
+        (out_label)->height = (float)(macro(elem)->dimen.y);                                           \
+    }
 
 char errBuff[1024];
 int vizErrorf(char *str) {
@@ -58,28 +73,15 @@ void write_error_message(char *message) {
     wasm_minimal_protocol_send_result_to_host((uint8_t *)message, strlen(message));
 }
 
-void set_edge_label(graph_t *g, void *e, struct Size_t *label_data, char *attr_name) {
+void set_edge_label(graph_t *g, void *e, const struct Size_t *label_data, char *attr_name) {
     if (label_data) {
-        const char *label = create_label_for_dimension(g, PS2INCH(label_data->width), PS2INCH(label_data->height));
+        DEBUG("Setting label %s: width=%f, height=%f\n", attr_name, label_data->width, label_data->height);
+        const char *label =
+            create_label_for_dimension(g, label_data->width, label_data->height);
         agset_html(e, attr_name, label);
         agstrfree(g, label, true);
     }
 }
-
-void extract_element_label_info(void *elem, LayoutLabel **out_label, char *attr_name) {
-    if (aghtmlstr(agget(elem, attr_name))) {
-        *out_label = malloc(sizeof(LayoutLabel));
-        if (!*out_label) {
-            ERROR("Failed to allocate memory for element label");
-            return;
-        }
-        (*out_label)->x = (float)INCH2PS(ND_xlabel(elem)->pos.x);
-        (*out_label)->y = (float)INCH2PS(ND_xlabel(elem)->pos.y);
-        (*out_label)->width = (float)INCH2PS(ND_xlabel(elem)->space.x);
-        (*out_label)->height = (float)INCH2PS(ND_xlabel(elem)->space.y);
-    }
-}
-
 
 EMSCRIPTEN_KEEPALIVE
 int layout_graph(size_t buffer_len) {
@@ -114,21 +116,31 @@ int layout_graph(size_t buffer_len) {
 
     // Set global graph attributes
     for (int i = 0; i < input_graph.attributes_len; i++) {
-        agattr_text(
-            g,
-            input_graph.attributes[i].for_ == 1 ? AGNODE : 
-                input_graph.attributes[i].for_ == 2 ? AGEDGE : AGRAPH,
-            input_graph.attributes[i].key,
-            input_graph.attributes[i].value
-        );
+        agattr_text(g,
+                    input_graph.attributes[i].for_ == 1   ? AGNODE
+                    : input_graph.attributes[i].for_ == 2 ? AGEDGE
+                                                          : AGRAPH,
+                    input_graph.attributes[i].key, input_graph.attributes[i].value);
     }
+
+    // initialize attribute table with defaults
     agattr_text(g, AGEDGE, "dir", "none");
     agattr_text(g, AGNODE, "arrowhead", "none");
     agattr_text(g, AGNODE, "arrowtail", "none");
     agattr_text(g, AGRAPH, "pad", "0");
     agattr_text(g, AGRAPH, "margin", "0");
+
     agattr_text(g, AGNODE, "width", "0.1");
     agattr_text(g, AGNODE, "height", "0.1");
+    agattr_text(g, AGNODE, "margin", "0");
+    agattr_text(g, AGNODE, "xlabel", "");
+    agattr_text(g, AGNODE, "shape", "none");
+    agattr_text(g, AGNODE, "fixedsize", "true");
+
+    agattr_text(g, AGEDGE, "label", "");
+    agattr_text(g, AGEDGE, "xlabel", "");
+    agattr_text(g, AGEDGE, "headlabel", "");
+    agattr_text(g, AGEDGE, "taillabel", "");
 
     // Create nodes and edges
     for (int i = 0; i < input_graph.nodes_len; i++) {
@@ -146,11 +158,8 @@ int layout_graph(size_t buffer_len) {
 
         DEBUG("Node %s: width=%s, height=%s\n", input_graph.nodes[i].name, width_str, height_str);
 
-        agset_text(n, "fixedsize", "true");
-        agset_text(n, "shape", "none");
         agset_text(n, "width", width_str);
         agset_text(n, "height", height_str);
-        agset_text(n, "margin", "0");
         agset_text(n, "label", "");
 
         set_edge_label(g, n, input_graph.nodes[i].xlabel, "xlabel");
@@ -176,7 +185,7 @@ int layout_graph(size_t buffer_len) {
         set_edge_label(g, e, input_graph.edges[i].xlabel, "xlabel");
         set_edge_label(g, e, input_graph.edges[i].headlabel, "headlabel");
         set_edge_label(g, e, input_graph.edges[i].taillabel, "taillabel");
-        
+
         for (int j = 0; j < input_graph.edges[i].attributes_len; j++) {
             agset_text(e, input_graph.edges[i].attributes[j].key, input_graph.edges[i].attributes[j].value);
         }
@@ -222,7 +231,7 @@ int layout_graph(size_t buffer_len) {
         layout.nodes[node_index].y = (float)ND_coord(n).y;
         layout.nodes[node_index].width = (float)INCH2PS(ND_width(n)); // Convert from inches to points
         layout.nodes[node_index].height = (float)INCH2PS(ND_height(n));
-        const char *name =  agnameof(n);
+        const char *name = agnameof(n);
         DEBUG("Node %s\n", name);
         layout.nodes[node_index].name = malloc(strlen(name) + 1);
         if (!layout.nodes[node_index].name) {
@@ -235,23 +244,8 @@ int layout_graph(size_t buffer_len) {
         }
         strcpy(layout.nodes[node_index].name, name);
 
-        extract_element_label_info(n, &layout.nodes[node_index].xlabel, "xlabel");
+        ELEMENT_LABEL_INFOS(n, layout.nodes[node_index].xlabel, "xlabel", ND_xlabel)
 
-        if (aghtmlstr(agget(n, "xlabel"))) {
-            layout.nodes[node_index].xlabel = malloc(sizeof(LayoutLabel));
-            if (!layout.nodes[node_index].xlabel) {
-                ERROR("Failed to allocate memory for node xlabel");
-                free_Layout(&layout);
-                gvFreeLayout(gvc, g);
-                agclose(g);
-                gvFreeContext(gvc);
-                return 1;
-            }
-            layout.nodes[node_index].xlabel->x = (float)INCH2PS(ND_xlabel(n)->pos.x);
-            layout.nodes[node_index].xlabel->y = (float)INCH2PS(ND_xlabel(n)->pos.y);
-            layout.nodes[node_index].xlabel->width = (float)INCH2PS(ND_xlabel(n)->space.x);
-            layout.nodes[node_index].xlabel->height = (float)INCH2PS(ND_xlabel(n)->space.y);
-        }
         for (Agedge_t *e = agfstedge(g, n); e; e = agnxtedge(g, e, n)) {
             if (AGID(agtail(e)) != AGID(n)) {
                 continue; // Only process outgoing edges
@@ -279,7 +273,7 @@ int layout_graph(size_t buffer_len) {
             }
             strcpy(layout.edges[edges_index].tail, name);
             strcpy(layout.edges[edges_index].head, head_name);
-            
+
             DEBUG("Edge from %s to %s\n", layout.edges[edges_index].tail, layout.edges[edges_index].head);
 
             splines *es = ED_spl(e);
@@ -315,10 +309,10 @@ int layout_graph(size_t buffer_len) {
                 }
             }
 
-            extract_element_label_info(e, &layout.edges[edges_index].label, "label");
-            extract_element_label_info(e, &layout.edges[edges_index].xlabel, "xlabel");
-            extract_element_label_info(e, &layout.edges[edges_index].headlabel, "headlabel");
-            extract_element_label_info(e, &layout.edges[edges_index].taillabel, "taillabel");
+            ELEMENT_LABEL_INFOS(e, layout.edges[edges_index].label, "label", ED_label)
+            ELEMENT_LABEL_INFOS(e, layout.edges[edges_index].xlabel, "xlabel", ED_xlabel)
+            ELEMENT_LABEL_INFOS(e, layout.edges[edges_index].headlabel, "headlabel", ED_head_label)
+            ELEMENT_LABEL_INFOS(e, layout.edges[edges_index].taillabel, "taillabel", ED_tail_label)
 
             edges_index++;
         }
@@ -342,7 +336,6 @@ int layout_graph(size_t buffer_len) {
     gvFreeContext(gvc);
     return 0;
 }
-
 
 EMSCRIPTEN_KEEPALIVE
 int engine_list() {

@@ -3,7 +3,7 @@
 
 #set page(width: auto, height: auto, margin: 5pt)
 
-#let result = build-layout(
+#let result = layout-graph(
   node("A", width: 20pt, height: 5pt),
   node("B", width: 50pt, height: 20pt),
   node("C", width: 4pt, height: 3pt),
@@ -13,4 +13,4 @@
   edge("A", "C"),
 )
 
-#layout-render(result)
+#render-layout(result)

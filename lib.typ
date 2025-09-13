@@ -1,3 +1,3 @@
-#import "./src/internals.typ": engine-list, build-layout, edge, node, graph-attribute
-#import "./src/renderer.typ": layout-render
+#import "./src/internals.typ": engine-list, layout-graph, edge, node, graph-attribute
+#import "./src/renderer.typ": render-layout
 

@@ -81,7 +81,7 @@
   )
 }
 
-#let build-layout(engine: "dot", directed: false, ..graph) = {
+#let layout-graph(engine: "dot", directed: false, ..graph) = {
   let pos = graph.pos()
   for n in graph.named().pairs() {
     pos.push(graph-attribute("GRAPH", n.at(0), n.at(1)))
@@ -114,6 +114,10 @@
       edges.push((
         tail: item.tail,
         head: item.head,
+        label: item.label,
+        xlabel: item.xlabel,
+        taillabel: item.taillabel,
+        headlabel: item.headlabel,
         attributes: item.attributes.pairs(),
       ))
     } else if item.type == "graph-attribute" {
@@ -133,6 +137,7 @@
 		edges: edges,
 		attributes: graph-attributes,
 	)
+  // return input
 	let input = encode-Graph(input)
   // return repr-bytes(input)
 	let output = graphviz.layout_graph(input)
